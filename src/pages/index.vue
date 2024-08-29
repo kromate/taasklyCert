@@ -61,7 +61,7 @@ const generate = () => {
 		user.isSchool = false
   }
 
-//  console.log(user, registrant.length)
+
 
 	setUser(user)
 	useRouter().push('/certificate')

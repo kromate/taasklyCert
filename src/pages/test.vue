@@ -95,7 +95,7 @@ function savePosition() {
 			y: inputRect.top - certRect.top
 		}
 
-		console.log('Saved position:', relativePosition)
+
 		// Here you can send this data to a server or store it locally
 	}
 }
