@@ -8,7 +8,7 @@
 					:style="{ top: position.y + 'px', left: position.x + 'px' }"
 					@mousedown="startDrag"
 				>
-					<input type="text" :class="['input-field md:min-w-[360px] text-3xl font-medium', { 'no-border': isDownloading }]">
+					<input type="text" :class="['input-field md:min-w-[360px] text-3xl font-medium', { 'no-border': isDownloading }]" v-model="name">
 					<button :class="['btn py-[11px] px-3 bg-dark text-light absolute right-0 cursor-move', { 'hidden': isDownloading }]">
 						Drag me
 					</button>
@@ -35,6 +35,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import html2canvas from 'html2canvas'
 
+const name = ref('')
 const position = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 const offset = ref({ x: 0, y: 0 })
@@ -118,7 +119,7 @@ function downloadCertificate() {
 		setTimeout(() => {
 			html2canvas(cert).then((canvas) => {
 				const link = document.createElement('a')
-				link.download = 'certificate.png'
+				link.download = `${name.value}.png`
 				link.href = canvas.toDataURL()
 				link.click()
 				isDownloading.value = false
