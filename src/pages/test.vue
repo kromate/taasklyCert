@@ -1,103 +1,152 @@
 <template>
 	<main class="center h-[80dvh]">
 		<section id="container" class="relative w-full max-w-[920px]">
-			<img id="img" src="/certificate.jpeg" class="w-10/12 object-contain bg-cover bg-center bg-no-repeat" :style="{ backgroundImage: 'url(/certificate.svg)' }">
-
-			<div
-				id="input-container"
-				class="flex absolute"
-				:style="{ top: position.y + 'px', left: position.x + 'px' }"
-				@mousedown="startDrag"
-			>
-				<input type="text" class="input-field md:min-w-[360px]">
-				<button class="btn py-[11px] px-3 bg-dark text-light absolute right-0 cursor-move">
-					Drag me
-				</button>
+			<div id="cert" class="relative w-[800px] h-[600px] bg-cover bg-center bg-no-repeat" :style="{ backgroundImage: `url(${backgroundImage})` }">
+				<div
+					id="input-container"
+					class="flex absolute"
+					:style="{ top: position.y + 'px', left: position.x + 'px' }"
+					@mousedown="startDrag"
+				>
+					<input type="text" :class="['input-field md:min-w-[360px] text-3xl font-medium', { 'no-border': isDownloading }]">
+					<button :class="['btn py-[11px] px-3 bg-dark text-light absolute right-0 cursor-move', { 'hidden': isDownloading }]">
+						Drag me
+					</button>
+				</div>
 			</div>
 		</section>
 
-		<button class="btn mt-4 px-4 py-2  rounded" @click="savePosition">
-			Save Position
-		</button>
+		<div class="flex gap-4 mt-4">
+			<label class="btn px-4 py-2 rounded cursor-pointer">
+					Upload Image
+					<input type="file" @change="handleImageUpload" accept="image/*" class="hidden">
+			</label>
+			<button class="btn px-4 py-2 rounded" @click="savePosition">
+				Save Position
+			</button>
+			<button class="btn px-4 py-2 rounded" @click="downloadCertificate">
+				Download Certificate
+			</button>
+		</div>
 	</main>
 </template>
 
 <script setup lang="ts">
-
+import { ref, onMounted, onUnmounted } from 'vue'
+import html2canvas from 'html2canvas'
 
 const position = ref({ x: 0, y: 0 })
 const isDragging = ref(false)
 const offset = ref({ x: 0, y: 0 })
-const containerRect = ref<DOMRect | null>(null)
+const certRect = ref<DOMRect | null>(null)
+const backgroundImage = ref('')
+const isDownloading = ref(false)
 
 onMounted(() => {
-  const container = document.getElementById('img')
-  if (container) {
-    containerRect.value = container.getBoundingClientRect()
-  }
+	const cert = document.getElementById('cert')
+	if (cert) {
+		certRect.value = cert.getBoundingClientRect()
+	}
 
-  window.addEventListener('mousemove', drag)
-  window.addEventListener('mouseup', stopDrag)
+	window.addEventListener('mousemove', drag)
+	window.addEventListener('mouseup', stopDrag)
 })
 
 onUnmounted(() => {
-  window.removeEventListener('mousemove', drag)
-  window.removeEventListener('mouseup', stopDrag)
+	window.removeEventListener('mousemove', drag)
+	window.removeEventListener('mouseup', stopDrag)
 })
 
 function startDrag(event: MouseEvent) {
-  isDragging.value = true
-  offset.value = {
-    x: event.clientX - position.value.x,
-    y: event.clientY - position.value.y
-  }
+	isDragging.value = true
+	offset.value = {
+		x: event.clientX - position.value.x,
+		y: event.clientY - position.value.y
+	}
 }
 
 function drag(event: MouseEvent) {
-  if (!isDragging.value || !containerRect.value) return
+	if (!isDragging.value || !certRect.value) return
 
-  let newX = event.clientX - offset.value.x
-  let newY = event.clientY - offset.value.y
+	let newX = event.clientX - offset.value.x
+	let newY = event.clientY - offset.value.y
 
-  // Constrain movement within the container
-  newX = Math.max(0, Math.min(newX, containerRect.value.width - 100)) // 100 is an approximation of the input container width
-  newY = Math.max(0, Math.min(newY, containerRect.value.height - 40)) // 40 is an approximation of the input container height
+	// Constrain movement within the cert div
+	newX = Math.max(0, Math.min(newX, certRect.value.width - 100)) // 100 is an approximation of the input container width
+	newY = Math.max(0, Math.min(newY, certRect.value.height - 40)) // 40 is an approximation of the input container height
 
-  position.value = { x: newX, y: newY }
+	position.value = { x: newX, y: newY }
 }
 
 function stopDrag() {
-  isDragging.value = false
+	isDragging.value = false
 }
 
 function savePosition() {
-  const container = document.getElementById('container')
-  const inputContainer = document.getElementById('input-container')
+	const cert = document.getElementById('cert')
+	const inputContainer = document.getElementById('input-container')
 
-  if (container && inputContainer) {
-    const containerRect = container.getBoundingClientRect()
-    const inputRect = inputContainer.getBoundingClientRect()
+	if (cert && inputContainer) {
+		const certRect = cert.getBoundingClientRect()
+		const inputRect = inputContainer.getBoundingClientRect()
 
-    const relativePosition = {
-      x: inputRect.left - containerRect.left,
-      y: inputRect.top - containerRect.top
-    }
+		const relativePosition = {
+			x: inputRect.left - certRect.left,
+			y: inputRect.top - certRect.top
+		}
 
-    console.log('Saved position:', relativePosition)
-    // Here you can send this data to a server or store it locally
-  }
+		console.log('Saved position:', relativePosition)
+		// Here you can send this data to a server or store it locally
+	}
+}
+
+function handleImageUpload(event: Event) {
+	const file = (event.target as HTMLInputElement).files?.[0]
+	if (file) {
+		const reader = new FileReader()
+		reader.onload = (e) => {
+			backgroundImage.value = e.target?.result as string
+		}
+		reader.readAsDataURL(file)
+	}
+}
+
+function downloadCertificate() {
+	const cert = document.getElementById('cert')
+	if (cert) {
+		isDownloading.value = true
+		setTimeout(() => {
+			html2canvas(cert).then((canvas) => {
+				const link = document.createElement('a')
+				link.download = 'certificate.png'
+				link.href = canvas.toDataURL()
+				link.click()
+				isDownloading.value = false
+			})
+		}, 100) // Small delay to ensure CSS changes are applied before capture
+	}
 }
 </script>
 
 <style scoped>
 .center {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex-direction: column;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
 }
 
 .cursor-move {
-  cursor: move;
+	cursor: move;
+}
+
+.hidden {
+	display: none;
+}
+
+.no-border {
+	border: none;
+	outline: none;
+	background: transparent;
 }
 </style>
