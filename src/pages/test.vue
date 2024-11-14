@@ -8,7 +8,7 @@
 					:style="{ top: position.y + 'px', left: position.x + 'px' }"
 					@mousedown="startDrag"
 				>
-					<input type="text" :class="['input-field md:min-w-[360px] text-3xl font-medium', { 'no-border': isDownloading }]" v-model="name">
+					<input v-model="name" type="text" :class="['input-field md:min-w-[360px] text-3xl font-medium', { 'no-border': isDownloading }]">
 					<button :class="['btn py-[11px] px-3 bg-dark text-light absolute right-0 cursor-move', { 'hidden': isDownloading }]">
 						Drag me
 					</button>
@@ -18,14 +18,21 @@
 
 		<div class="flex gap-4 mt-4">
 			<label class="btn px-4 py-2 rounded cursor-pointer">
-					Upload Image
-					<input type="file" @change="handleImageUpload" accept="image/*" class="hidden">
+				Upload Image
+				<input type="file" accept="image/*" class="hidden" @change="handleImageUpload">
+			</label>
+			<label class="btn px-4 py-2 rounded cursor-pointer">
+				Upload Names CSV
+				<input type="file" accept=".csv" class="hidden" @change="handleCSVUpload">
 			</label>
 			<button class="btn px-4 py-2 rounded" @click="savePosition">
 				Save Position
 			</button>
+			<button class="btn px-4 py-2 rounded" :disabled="!names.length" @click="generateAllCertificates">
+				Generate All Certificates
+			</button>
 			<button class="btn px-4 py-2 rounded" @click="downloadCertificate">
-				Download Certificate
+				Download Single Certificate
 			</button>
 		</div>
 	</main>
@@ -42,6 +49,7 @@ const offset = ref({ x: 0, y: 0 })
 const certRect = ref<DOMRect | null>(null)
 const backgroundImage = ref('')
 const isDownloading = ref(false)
+const names = ref<string[]>([])
 
 onMounted(() => {
 	const cert = document.getElementById('cert')
@@ -125,6 +133,44 @@ function downloadCertificate() {
 				isDownloading.value = false
 			})
 		}, 100) // Small delay to ensure CSS changes are applied before capture
+	}
+}
+
+async function handleCSVUpload(event: Event) {
+	const file = (event.target as HTMLInputElement).files?.[0]
+	if (file) {
+		const text = await file.text()
+		names.value = text
+			.split('\n')
+			.map((name) => name.trim())
+			.filter((name) => name) // Remove empty lines
+	}
+}
+
+async function generateAllCertificates() {
+	if (!names.value.length) return
+
+	const cert = document.getElementById('cert')
+	if (!cert) return
+
+	isDownloading.value = true
+	const originalName = name.value
+
+	try {
+		for (const currentName of names.value) {
+			name.value = currentName
+			// Wait a brief moment for the name to update in the DOM
+			await new Promise((resolve) => setTimeout(resolve, 100))
+
+			const canvas = await html2canvas(cert)
+			const link = document.createElement('a')
+			link.download = `${currentName}.png`
+			link.href = canvas.toDataURL()
+			link.click()
+		}
+	} finally {
+		name.value = originalName
+		isDownloading.value = false
 	}
 }
 </script>
